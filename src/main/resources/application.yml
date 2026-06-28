@@ -1,0 +1,84 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: ebooks-commerce-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/commerce_db}
+    username: ${SPRING_DATASOURCE_USERNAME:ebooks}
+    password: ${SPRING_DATASOURCE_PASSWORD:ebooks_secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:ebooks}
+    password: ${SPRING_RABBITMQ_PASSWORD:ebooks_secret}
+
+  data:
+    redis:
+      url: ${SPRING_DATA_REDIS_URL:redis://localhost:6379}
+
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org.quartz.scheduler.instanceName: CommerceScheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.threadPool.threadCount: 5
+
+mpesa:
+  api-url: ${MPESA_API_URL:https://api.sandbox.vm.co.mz}
+  api-key: ${MPESA_API_KEY:}
+  public-key: ${MPESA_PUBLIC_KEY:}
+  service-provider-code: ${MPESA_SERVICE_PROVIDER_CODE:171717}
+
+emola:
+  api-url: ${EMOLA_API_URL:https://api.sandbox.emola.co.mz}
+  api-key: ${EMOLA_API_KEY:}
+  merchant-code: ${EMOLA_MERCHANT_CODE:}
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_}
+
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
+  mode: ${PAYPAL_MODE:sandbox}
+
+app:
+  catalog-service-url: ${CATALOG_SERVICE_URL:http://localhost:8082}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
