@@ -1,5 +1,6 @@
 package mz.ebooks.commerce.address.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateAddressRequest {
 
-    @NotBlank(message = "name is required")
+    @NotBlank(message = "label is required")
+    @JsonProperty("label")
     private String name;
 
     @NotBlank(message = "street is required")
@@ -20,8 +22,6 @@ public class CreateAddressRequest {
 
     private String number;
     private String complement;
-
-    @NotBlank(message = "district is required")
     private String district;
 
     @NotBlank(message = "city is required")
@@ -32,5 +32,6 @@ public class CreateAddressRequest {
 
     private String country;
     private String postalCode;
+    @JsonProperty("isDefault")
     private boolean isDefault;
 }

@@ -3,6 +3,9 @@ package mz.ebooks.commerce.order.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mz.ebooks.commerce.address.dto.AddressDto;
+import mz.ebooks.commerce.address.entity.Address;
+import mz.ebooks.commerce.address.repository.AddressRepository;
 import mz.ebooks.commerce.messaging.CommerceEventPublisher;
 import mz.ebooks.commerce.order.dto.CheckoutItemRequest;
 import mz.ebooks.commerce.order.dto.CheckoutResponse;
@@ -17,6 +20,7 @@ import mz.ebooks.commerce.payment.dto.InitiatePaymentRequest;
 import mz.ebooks.commerce.payment.dto.PaymentResponse;
 import mz.ebooks.commerce.payment.repository.PaymentRepository;
 import mz.ebooks.commerce.payment.service.PaymentService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,8 +37,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final AddressRepository addressRepository;
     private final CommerceEventPublisher eventPublisher;
     private final PaymentService paymentService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Transactional
     public CheckoutResponse checkout(String userId, CreateOrderRequest req) {
@@ -104,6 +112,8 @@ public class OrderService {
                 .amount(total)
                 .currency(currency)
                 .phoneNumber(req.getPhoneNumber())
+                .returnUrl(frontendUrl + "/checkout/paypal/capture")
+                .cancelUrl(frontendUrl + "/checkout?paypal=cancelled")
                 .build();
 
         PaymentResponse paymentResponse = paymentService.initiatePayment(paymentReq);
@@ -119,9 +129,9 @@ public class OrderService {
                 .build();
     }
 
-    public Page<OrderSummaryDto> getUserOrders(String userId, Pageable pageable) {
+    public Page<OrderDto> getUserOrders(String userId, Pageable pageable) {
         return orderRepository.findByUserId(userId, pageable)
-                .map(this::toSummaryDto);
+                .map(order -> toDto(order, null));
     }
 
     public Page<OrderSummaryDto> getAdminOrders(String status, Pageable pageable) {
@@ -208,17 +218,26 @@ public class OrderService {
                         .bookId(item.getBookId())
                         .bookTitle(item.getBookTitle())
                         .bookType(item.getBookType())
+                        .bookCover(item.getBookCover())
                         .quantity(item.getQuantity())
                         .unitPrice(item.getUnitPrice())
                         .totalPrice(item.getTotalPrice())
                         .build())
                 .toList();
 
+        AddressDto addressDto = null;
+        if (order.getAddressId() != null) {
+            addressDto = addressRepository.findById(order.getAddressId())
+                    .map(this::toAddressDto)
+                    .orElse(null);
+        }
+
         return OrderDto.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
                 .userId(order.getUserId())
                 .addressId(order.getAddressId())
+                .address(addressDto)
                 .status(order.getStatus())
                 .subtotal(order.getSubtotal())
                 .deliveryFee(order.getDeliveryFee())
@@ -229,6 +248,24 @@ public class OrderService {
                 .paymentStatus(paymentStatus)
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .build();
+    }
+
+    private AddressDto toAddressDto(Address a) {
+        return AddressDto.builder()
+                .id(a.getId())
+                .userId(a.getUserId())
+                .name(a.getName())
+                .street(a.getStreet())
+                .number(a.getNumber())
+                .complement(a.getComplement())
+                .district(a.getDistrict())
+                .city(a.getCity())
+                .province(a.getProvince())
+                .country(a.getCountry())
+                .postalCode(a.getPostalCode())
+                .isDefault(a.isDefault())
+                .createdAt(a.getCreatedAt())
                 .build();
     }
 

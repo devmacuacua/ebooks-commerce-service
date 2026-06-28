@@ -32,7 +32,7 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<OrderSummaryDto>> getMyOrders(
+    public ResponseEntity<Page<OrderDto>> getMyOrders(
             @RequestHeader("X-User-Id") String userId,
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(orderService.getUserOrders(userId, pageable));

@@ -1,5 +1,6 @@
 package mz.ebooks.commerce.address.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +17,10 @@ public class AddressDto {
 
     private UUID id;
     private String userId;
+
+    @JsonProperty("label")
     private String name;
+
     private String street;
     private String number;
     private String complement;
@@ -25,6 +29,7 @@ public class AddressDto {
     private String province;
     private String country;
     private String postalCode;
+    @JsonProperty("isDefault")
     private boolean isDefault;
     private LocalDateTime createdAt;
 }

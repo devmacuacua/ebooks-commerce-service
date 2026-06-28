@@ -8,6 +8,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.core.ParameterizedTypeReference;
+
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -53,7 +55,7 @@ public class PaypalProvider {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null) {
                 return (String) responseBody.get("access_token");
@@ -65,7 +67,6 @@ public class PaypalProvider {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public PaypalOrderResult createOrder(BigDecimal amount, String currency, String returnUrl, String cancelUrl) {
         String accessToken = getAccessToken();
         String url = getBaseUrl() + "/v2/checkout/orders";
@@ -93,7 +94,7 @@ public class PaypalProvider {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(orderPayload, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null) {
                 String orderId = (String) responseBody.get("id");
@@ -131,7 +132,7 @@ public class PaypalProvider {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null) {
                 String status = (String) responseBody.get("status");

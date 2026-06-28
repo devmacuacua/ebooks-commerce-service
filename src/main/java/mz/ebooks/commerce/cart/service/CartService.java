@@ -8,7 +8,6 @@ import mz.ebooks.commerce.cart.dto.CartDto;
 import mz.ebooks.commerce.cart.dto.CartItemDto;
 import mz.ebooks.commerce.cart.entity.Cart;
 import mz.ebooks.commerce.cart.entity.CartItem;
-import mz.ebooks.commerce.cart.repository.CartItemRepository;
 import mz.ebooks.commerce.cart.repository.CartRepository;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +21,6 @@ import java.util.UUID;
 public class CartService {
 
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
 
     @Transactional
     public Cart getOrCreateCart(String userId) {

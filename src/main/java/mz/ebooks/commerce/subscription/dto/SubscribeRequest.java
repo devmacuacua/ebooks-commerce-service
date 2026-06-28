@@ -15,7 +15,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class SubscribeRequest {
 
-    @NotNull(message = "userId is required")
     private String userId;
 
     @NotNull(message = "planId is required")

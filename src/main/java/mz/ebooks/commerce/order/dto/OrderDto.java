@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import mz.ebooks.commerce.address.dto.AddressDto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class OrderDto {
     private String orderNumber;
     private String userId;
     private UUID addressId;
+    private AddressDto address;
     private String status;
     private BigDecimal subtotal;
     private BigDecimal deliveryFee;

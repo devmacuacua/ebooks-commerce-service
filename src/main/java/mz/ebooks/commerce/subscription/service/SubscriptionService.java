@@ -12,6 +12,7 @@ import mz.ebooks.commerce.subscription.entity.Subscription;
 import mz.ebooks.commerce.subscription.entity.SubscriptionPlan;
 import mz.ebooks.commerce.subscription.repository.SubscriptionPlanRepository;
 import mz.ebooks.commerce.subscription.repository.SubscriptionRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,15 +31,18 @@ public class SubscriptionService {
     private final SubscriptionPlanRepository planRepository;
     private final CommerceEventPublisher eventPublisher;
     private final org.springframework.context.ApplicationContext applicationContext;
+    private final String frontendUrl;
 
     public SubscriptionService(SubscriptionRepository subscriptionRepository,
                                SubscriptionPlanRepository planRepository,
                                CommerceEventPublisher eventPublisher,
-                               org.springframework.context.ApplicationContext applicationContext) {
+                               org.springframework.context.ApplicationContext applicationContext,
+                               @Value("${app.frontend-url}") String frontendUrl) {
         this.subscriptionRepository = subscriptionRepository;
         this.planRepository = planRepository;
         this.eventPublisher = eventPublisher;
         this.applicationContext = applicationContext;
+        this.frontendUrl = frontendUrl;
     }
 
     // Lazy to break circular dependency with PaymentService
@@ -82,8 +86,8 @@ public class SubscriptionService {
                 .amount(plan.getPrice())
                 .currency(plan.getCurrency())
                 .phoneNumber(req.getPhoneNumber())
-                .returnUrl(req.getReturnUrl())
-                .cancelUrl(req.getCancelUrl())
+                .returnUrl(frontendUrl + "/checkout/paypal/capture")
+                .cancelUrl(frontendUrl + "/checkout?paypal=cancelled")
                 .build();
 
         return getPaymentService().initiatePayment(paymentRequest);

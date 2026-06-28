@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import org.springframework.core.ParameterizedTypeReference;
+
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,7 +75,7 @@ public class MpesaProvider {
         HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null) {
                 String responseCode = (String) responseBody.get("output_ResponseCode");
@@ -103,7 +105,7 @@ public class MpesaProvider {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, request, new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null) {
                 String responseCode = (String) responseBody.get("output_ResponseCode");

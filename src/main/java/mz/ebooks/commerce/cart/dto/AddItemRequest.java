@@ -31,6 +31,7 @@ public class AddItemRequest {
 
     private String bookCover;
 
+    @Builder.Default
     @Min(value = 1, message = "quantity must be at least 1")
     private int quantity = 1;
 }
