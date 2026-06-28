@@ -2,12 +2,14 @@ package mz.ebooks.commerce.order.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import mz.ebooks.commerce.order.dto.CheckoutResponse;
 import mz.ebooks.commerce.order.dto.CreateOrderRequest;
 import mz.ebooks.commerce.order.dto.OrderDto;
 import mz.ebooks.commerce.order.dto.OrderSummaryDto;
 import mz.ebooks.commerce.order.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +24,11 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderDto> createOrder(
+    public ResponseEntity<CheckoutResponse> createOrder(
             @RequestHeader("X-User-Id") String userId,
             @Valid @RequestBody CreateOrderRequest req) {
         req.setUserId(userId);
-        return ResponseEntity.ok(orderService.createOrderFromCart(userId, req.getAddressId(), req.getNotes()));
+        return ResponseEntity.ok(orderService.checkout(userId, req));
     }
 
     @GetMapping
@@ -54,7 +56,7 @@ public class OrderController {
     public ResponseEntity<Page<OrderSummaryDto>> adminListOrders(
             @RequestHeader(value = "X-User-Role", defaultValue = "") String role,
             @RequestParam(required = false) String status,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
         }

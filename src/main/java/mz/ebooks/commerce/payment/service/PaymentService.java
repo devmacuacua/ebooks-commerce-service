@@ -289,9 +289,9 @@ public class PaymentService {
             deliveryAddress = addressRepository.findById(order.getAddressId())
                     .map(addr -> {
                         Map<String, Object> a = new HashMap<>();
-                        a.put("name", addr.getName());
-                        a.put("street", addr.getStreet());
-                        a.put("number", addr.getNumber());
+                        a.put("recipientName", addr.getName());
+                        String address = addr.getStreet() + (addr.getNumber() != null ? ", " + addr.getNumber() : "");
+                        a.put("address", address);
                         a.put("district", addr.getDistrict());
                         a.put("city", addr.getCity());
                         a.put("province", addr.getProvince());
@@ -304,13 +304,17 @@ public class PaymentService {
         List<Map<String, Object>> items = order.getItems().stream()
                 .map(item -> {
                     Map<String, Object> i = new HashMap<>();
+                    i.put("orderItemId", item.getId().toString());
                     i.put("bookId", item.getBookId().toString());
                     i.put("bookTitle", item.getBookTitle());
+                    i.put("type", item.getBookType());
                     i.put("bookType", item.getBookType());
                     i.put("bookCover", item.getBookCover());
                     i.put("quantity", item.getQuantity());
+                    i.put("price", item.getUnitPrice());
                     i.put("unitPrice", item.getUnitPrice());
                     i.put("totalPrice", item.getTotalPrice());
+                    i.put("currency", order.getCurrency());
                     return i;
                 }).collect(java.util.stream.Collectors.toList());
 

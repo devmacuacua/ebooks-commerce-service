@@ -3,17 +3,20 @@ package mz.ebooks.commerce.order.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mz.ebooks.commerce.cart.entity.Cart;
-import mz.ebooks.commerce.cart.entity.CartItem;
-import mz.ebooks.commerce.cart.service.CartService;
 import mz.ebooks.commerce.messaging.CommerceEventPublisher;
+import mz.ebooks.commerce.order.dto.CheckoutItemRequest;
+import mz.ebooks.commerce.order.dto.CheckoutResponse;
+import mz.ebooks.commerce.order.dto.CreateOrderRequest;
 import mz.ebooks.commerce.order.dto.OrderDto;
 import mz.ebooks.commerce.order.dto.OrderItemDto;
 import mz.ebooks.commerce.order.dto.OrderSummaryDto;
 import mz.ebooks.commerce.order.entity.Order;
 import mz.ebooks.commerce.order.entity.OrderItem;
 import mz.ebooks.commerce.order.repository.OrderRepository;
+import mz.ebooks.commerce.payment.dto.InitiatePaymentRequest;
+import mz.ebooks.commerce.payment.dto.PaymentResponse;
 import mz.ebooks.commerce.payment.repository.PaymentRepository;
+import mz.ebooks.commerce.payment.service.PaymentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,24 +33,26 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
-    private final CartService cartService;
     private final CommerceEventPublisher eventPublisher;
+    private final PaymentService paymentService;
 
     @Transactional
-    public OrderDto createOrderFromCart(String userId, UUID addressId, String notes) {
-        Cart cart = cartService.getOrCreateCart(userId);
+    public CheckoutResponse checkout(String userId, CreateOrderRequest req) {
+        List<CheckoutItemRequest> reqItems = req.getItems();
 
-        if (cart.getItems().isEmpty()) {
+        if (reqItems == null || reqItems.isEmpty()) {
             throw new IllegalStateException("Cart is empty");
         }
 
-        // Calculate subtotal and delivery fee
-        BigDecimal subtotal = cart.getItems().stream()
+        String currency = req.getCurrency() != null ? req.getCurrency() : "MZN";
+
+        BigDecimal subtotal = reqItems.stream()
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        boolean hasPhysical = cart.getItems().stream()
-                .anyMatch(item -> "PHYSICAL".equalsIgnoreCase(item.getBookType()));
+        boolean hasPhysical = reqItems.stream()
+                .anyMatch(item -> "PHYSICAL".equalsIgnoreCase(item.getBookType())
+                        || "BOTH".equalsIgnoreCase(item.getBookType()));
 
         BigDecimal deliveryFee = hasPhysical ? new BigDecimal("150.00") : BigDecimal.ZERO;
         BigDecimal total = subtotal.add(deliveryFee);
@@ -57,47 +62,61 @@ public class OrderService {
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .userId(userId)
-                .addressId(addressId)
+                .addressId(req.getAddressId())
                 .status("PENDING")
                 .subtotal(subtotal)
                 .deliveryFee(deliveryFee)
                 .total(total)
-                .currency("MZN")
-                .notes(notes)
+                .currency(currency)
+                .notes(req.getNotes())
                 .build();
 
-        // Build order items
-        List<OrderItem> orderItems = cart.getItems().stream()
-                .map(cartItem -> OrderItem.builder()
-                        .bookId(cartItem.getBookId())
-                        .bookTitle(cartItem.getBookTitle())
-                        .bookType(cartItem.getBookType())
-                        .bookCover(cartItem.getBookCover())
-                        .quantity(cartItem.getQuantity())
-                        .unitPrice(cartItem.getPrice())
-                        .totalPrice(cartItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())))
+        List<OrderItem> orderItems = reqItems.stream()
+                .map(item -> OrderItem.builder()
+                        .bookId(item.getBookId())
+                        .bookTitle(item.getBookTitle())
+                        .bookType(item.getBookType())
+                        .bookCover(item.getBookCover())
+                        .quantity(item.getQuantity())
+                        .unitPrice(item.getPrice())
+                        .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                         .build())
                 .toList();
 
         order = orderRepository.save(order);
-
         order.getItems().addAll(orderItems);
         order = orderRepository.save(order);
 
-        // Clear cart
-        cartService.clearCart(userId);
-
-        // Publish event
-        Map<String, Object> event = new HashMap<>();
-        event.put("orderId", order.getId().toString());
-        event.put("orderNumber", order.getOrderNumber());
-        event.put("userId", userId);
-        event.put("total", order.getTotal());
-        event.put("currency", order.getCurrency());
-        eventPublisher.publishOrderCreated(event);
+        Map<String, Object> createdEvent = new HashMap<>();
+        createdEvent.put("orderId", order.getId().toString());
+        createdEvent.put("orderNumber", order.getOrderNumber());
+        createdEvent.put("userId", userId);
+        createdEvent.put("total", order.getTotal());
+        createdEvent.put("currency", order.getCurrency());
+        eventPublisher.publishOrderCreated(createdEvent);
 
         log.info("Order {} created for user {}", orderNumber, userId);
-        return toDto(order, null);
+
+        InitiatePaymentRequest paymentReq = InitiatePaymentRequest.builder()
+                .userId(userId)
+                .orderId(order.getId())
+                .method(req.getPaymentMethod())
+                .amount(total)
+                .currency(currency)
+                .phoneNumber(req.getPhoneNumber())
+                .build();
+
+        PaymentResponse paymentResponse = paymentService.initiatePayment(paymentReq);
+
+        return CheckoutResponse.builder()
+                .orderId(order.getId())
+                .paymentId(paymentResponse.getPaymentId())
+                .status(paymentResponse.getStatus())
+                .clientSecret(paymentResponse.getClientSecret())
+                .redirectUrl(paymentResponse.getRedirectUrl())
+                .instructions(paymentResponse.getInstructions())
+                .method(paymentResponse.getMethod())
+                .build();
     }
 
     public Page<OrderSummaryDto> getUserOrders(String userId, Pageable pageable) {
@@ -154,10 +173,22 @@ public class OrderService {
         order.setStatus("CANCELLED");
         order = orderRepository.save(order);
 
+        List<Map<String, Object>> cancelItems = order.getItems().stream()
+                .map(item -> {
+                    Map<String, Object> i = new HashMap<>();
+                    i.put("bookId", item.getBookId().toString());
+                    i.put("bookTitle", item.getBookTitle());
+                    i.put("bookType", item.getBookType());
+                    i.put("quantity", item.getQuantity());
+                    return i;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
         Map<String, Object> event = new HashMap<>();
         event.put("orderId", orderId.toString());
         event.put("orderNumber", order.getOrderNumber());
         event.put("userId", userId);
+        event.put("items", cancelItems);
         eventPublisher.publishOrderCancelled(event);
 
         log.info("Order {} cancelled by user {}", order.getOrderNumber(), userId);
