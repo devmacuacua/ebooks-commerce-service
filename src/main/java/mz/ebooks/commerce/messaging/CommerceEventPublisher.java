@@ -55,6 +55,10 @@ public class CommerceEventPublisher {
         publish(RabbitMQConfig.RK_SUBSCRIPTION_RENEWAL_REQUESTED, payload);
     }
 
+    public void publishSubscriptionActivated(Map<String, Object> payload) {
+        publish(RabbitMQConfig.RK_SUBSCRIPTION_ACTIVATED, payload);
+    }
+
     private void publish(String routingKey, Object payload) {
         try {
             rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, routingKey, payload);

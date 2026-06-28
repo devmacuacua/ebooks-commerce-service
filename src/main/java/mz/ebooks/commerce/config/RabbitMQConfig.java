@@ -25,6 +25,7 @@ public class RabbitMQConfig {
     public static final String QUEUE_SUBSCRIPTION_EXPIRING = "commerce.subscription.expiring";
     public static final String QUEUE_SUBSCRIPTION_EXPIRED = "commerce.subscription.expired";
     public static final String QUEUE_SUBSCRIPTION_RENEWAL_REQUESTED = "commerce.subscription.renewal-requested";
+    public static final String QUEUE_SUBSCRIPTION_ACTIVATED = "commerce.subscription.activated";
     public static final String QUEUE_ORDER_CONFIRMED_INBOUND = "commerce.order.confirmed";
 
     // Routing keys
@@ -38,6 +39,7 @@ public class RabbitMQConfig {
     public static final String RK_SUBSCRIPTION_EXPIRING = "subscription.expiring";
     public static final String RK_SUBSCRIPTION_EXPIRED = "subscription.expired";
     public static final String RK_SUBSCRIPTION_RENEWAL_REQUESTED = "subscription.renewal-requested";
+    public static final String RK_SUBSCRIPTION_ACTIVATED = "subscription.activated";
     public static final String RK_ORDER_CONFIRMED = "commerce.order.confirmed";
 
     @Bean
@@ -91,6 +93,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue subscriptionActivatedQueue() {
+        return QueueBuilder.durable(QUEUE_SUBSCRIPTION_ACTIVATED).build();
+    }
+
+    @Bean
     public Queue orderConfirmedInboundQueue() {
         return QueueBuilder.durable(QUEUE_ORDER_CONFIRMED_INBOUND).build();
     }
@@ -138,6 +145,11 @@ public class RabbitMQConfig {
     @Bean
     public Binding subscriptionRenewalRequestedBinding() {
         return BindingBuilder.bind(subscriptionRenewalRequestedQueue()).to(ebooksExchange()).with(RK_SUBSCRIPTION_RENEWAL_REQUESTED);
+    }
+
+    @Bean
+    public Binding subscriptionActivatedBinding() {
+        return BindingBuilder.bind(subscriptionActivatedQueue()).to(ebooksExchange()).with(RK_SUBSCRIPTION_ACTIVATED);
     }
 
     @Bean

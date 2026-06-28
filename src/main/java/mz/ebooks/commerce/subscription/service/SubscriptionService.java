@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import mz.ebooks.commerce.payment.dto.InitiatePaymentRequest;
 import mz.ebooks.commerce.payment.dto.PaymentResponse;
+import mz.ebooks.commerce.messaging.CommerceEventPublisher;
 import mz.ebooks.commerce.subscription.dto.PlanDto;
 import mz.ebooks.commerce.subscription.dto.SubscribeRequest;
 import mz.ebooks.commerce.subscription.dto.SubscriptionDto;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,13 +28,16 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionPlanRepository planRepository;
+    private final CommerceEventPublisher eventPublisher;
     private final org.springframework.context.ApplicationContext applicationContext;
 
     public SubscriptionService(SubscriptionRepository subscriptionRepository,
                                SubscriptionPlanRepository planRepository,
+                               CommerceEventPublisher eventPublisher,
                                org.springframework.context.ApplicationContext applicationContext) {
         this.subscriptionRepository = subscriptionRepository;
         this.planRepository = planRepository;
+        this.eventPublisher = eventPublisher;
         this.applicationContext = applicationContext;
     }
 
@@ -104,6 +110,14 @@ public class SubscriptionService {
             subscription.setExpiryNotified1d(false);
             subscriptionRepository.save(subscription);
             log.info("Subscription {} activated for user {} until {}", subscriptionId, subscription.getUserId(), endDate);
+
+            Map<String, Object> event = new HashMap<>();
+            event.put("userId", subscription.getUserId());
+            event.put("subscriptionId", subscriptionId.toString());
+            event.put("planId", subscription.getPlan() != null ? subscription.getPlan().getId().toString() : null);
+            event.put("planName", subscription.getPlan() != null ? subscription.getPlan().getName() : null);
+            event.put("expiresAt", endDate.toString());
+            eventPublisher.publishSubscriptionActivated(event);
         });
     }
 
