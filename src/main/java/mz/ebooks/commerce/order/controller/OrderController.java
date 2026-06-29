@@ -63,6 +63,7 @@ public class OrderController {
     public ResponseEntity<Page<OrderSummaryDto>> adminListOrders(
             @RequestHeader(value = "X-User-Role", defaultValue = "") String role,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
@@ -71,7 +72,7 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok(orderService.getAdminOrders(
-                status != null ? status.toUpperCase() : null, pageable));
+                status != null ? status.toUpperCase() : null, search, pageable));
     }
 
     @PatchMapping("/admin/{id}/status")

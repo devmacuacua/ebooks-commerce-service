@@ -145,11 +145,8 @@ public class OrderService {
                 .map(order -> toDto(order, null));
     }
 
-    public Page<OrderSummaryDto> getAdminOrders(String status, Pageable pageable) {
-        Page<Order> page = (status != null && !status.isBlank())
-                ? orderRepository.findByStatus(status, pageable)
-                : orderRepository.findAll(pageable);
-        return page.map(this::toSummaryDto);
+    public Page<OrderSummaryDto> getAdminOrders(String status, String search, Pageable pageable) {
+        return orderRepository.searchOrders(status, search, pageable).map(this::toSummaryDto);
     }
 
     public OrderDto getOrder(UUID orderId, String userId) {
