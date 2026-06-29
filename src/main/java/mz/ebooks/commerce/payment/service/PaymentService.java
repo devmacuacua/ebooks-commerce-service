@@ -307,6 +307,7 @@ public class PaymentService {
                     i.put("type", item.getBookType());
                     i.put("bookType", item.getBookType());
                     i.put("bookCover", item.getBookCover());
+                    if (item.getBookSlug() != null) i.put("bookSlug", item.getBookSlug());
                     i.put("quantity", item.getQuantity());
                     i.put("price", item.getUnitPrice());
                     i.put("unitPrice", item.getUnitPrice());

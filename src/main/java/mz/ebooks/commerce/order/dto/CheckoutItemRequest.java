@@ -28,6 +28,8 @@ public class CheckoutItemRequest {
 
     private String bookCover;
 
+    private String bookSlug;
+
     @NotNull(message = "price is required")
     private BigDecimal price;
 

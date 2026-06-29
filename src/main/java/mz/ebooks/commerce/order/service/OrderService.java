@@ -85,6 +85,7 @@ public class OrderService {
                         .bookTitle(item.getBookTitle())
                         .bookType(item.getBookType())
                         .bookCover(item.getBookCover())
+                        .bookSlug(item.getBookSlug())
                         .quantity(item.getQuantity())
                         .unitPrice(item.getPrice())
                         .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
