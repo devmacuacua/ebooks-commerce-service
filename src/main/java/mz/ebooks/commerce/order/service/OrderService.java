@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import mz.ebooks.commerce.address.dto.AddressDto;
 import mz.ebooks.commerce.address.entity.Address;
 import mz.ebooks.commerce.address.repository.AddressRepository;
+import mz.ebooks.commerce.config.DeliveryFeeClient;
 import mz.ebooks.commerce.messaging.CommerceEventPublisher;
 import mz.ebooks.commerce.order.dto.CheckoutItemRequest;
 import mz.ebooks.commerce.order.dto.CheckoutResponse;
@@ -40,6 +41,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final CommerceEventPublisher eventPublisher;
     private final PaymentService paymentService;
+    private final DeliveryFeeClient deliveryFeeClient;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -62,7 +64,15 @@ public class OrderService {
                 .anyMatch(item -> "PHYSICAL".equalsIgnoreCase(item.getBookType())
                         || "BOTH".equalsIgnoreCase(item.getBookType()));
 
-        BigDecimal deliveryFee = hasPhysical ? new BigDecimal("150.00") : BigDecimal.ZERO;
+        BigDecimal deliveryFee = BigDecimal.ZERO;
+        if (hasPhysical) {
+            String province = req.getAddressId() != null
+                    ? addressRepository.findById(req.getAddressId())
+                            .map(Address::getProvince)
+                            .orElse(null)
+                    : null;
+            deliveryFee = deliveryFeeClient.getFeeForProvince(province);
+        }
         BigDecimal total = subtotal.add(deliveryFee);
 
         String orderNumber = generateOrderNumber();
