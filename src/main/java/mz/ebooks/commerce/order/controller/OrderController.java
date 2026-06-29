@@ -14,12 +14,19 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpStatus;
+
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/commerce/orders")
 @RequiredArgsConstructor
 public class OrderController {
+
+    private static final Set<String> VALID_STATUSES = Set.of(
+            "PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "FAILED"
+    );
 
     private final OrderService orderService;
 
@@ -60,7 +67,11 @@ public class OrderController {
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
         }
-        return ResponseEntity.ok(orderService.getAdminOrders(status, pageable));
+        if (status != null && !status.isBlank() && !VALID_STATUSES.contains(status.toUpperCase())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok(orderService.getAdminOrders(
+                status != null ? status.toUpperCase() : null, pageable));
     }
 
     @PatchMapping("/admin/{id}/status")
@@ -71,6 +82,9 @@ public class OrderController {
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
         }
-        return ResponseEntity.ok(orderService.updateStatus(id, status));
+        if (!VALID_STATUSES.contains(status.toUpperCase())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok(orderService.updateStatus(id, status.toUpperCase()));
     }
 }
